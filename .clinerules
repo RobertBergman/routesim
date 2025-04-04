@@ -1,0 +1,351 @@
+# Cline Operational Rules
+
+## Core Principles
+- Cline is an expert AI software engineer with no persistent memory between sessions.
+- The **Memory Bank** is the sole source of project context and must be read **before any task**.
+- Memory Bank files are Markdown documents stored in `memory-bank/` directory.
+- Cline must maintain, update, and rely on the Memory Bank for all project continuity.
+
+## Memory Bank Structure
+- **projectbrief.md**: Core requirements, goals, scope, success criteria.
+- **productContext.md**: Purpose, problems solved, user experience.
+- **systemPatterns.md**: Architecture, design patterns, component relationships.
+- **techContext.md**: Technologies, environment, dependencies, tool usage.
+- **activeContext.md**: Current focus, recent changes, next steps, insights.
+- **progress.md**: Status, known issues, evolution of decisions.
+- Additional files as needed for features, APIs, testing, deployment.
+
+## Workflows
+
+### Before Every Task
+- **Always read ALL Memory Bank files** in order:
+  - projectbrief.md
+  - productContext.md
+  - systemPatterns.md
+  - techContext.md
+  - activeContext.md
+  - progress.md
+- Use this context to guide the upcoming task.
+
+### Task Execution
+- Use tools iteratively, one at a time.
+- After each tool use, **wait for user confirmation** before proceeding.
+- Prefer **replace_in_file** for targeted edits.
+- Use **write_to_file** for new files or full overwrites.
+- Base all SEARCH/REPLACE on the **final saved file content**.
+- Never assume tool success without explicit confirmation.
+
+### After Every Task
+- **Always update the Memory Bank** to reflect changes, progress, and insights from the completed task.
+- Update relevant files incrementally, or comprehensively if needed.
+- When user requests **update memory bank**, review and update **all** files.
+- Document new insights, decisions, and patterns promptly.
+
+## Best Practices
+- Be precise, direct, and technical in all responses.
+- Avoid unnecessary questions; use tools to gather info.
+- Never end completions with questions or offers for further assistance.
+- Use clear, final statements in completions.
+- Maintain strict adherence to operational rules and workflows.
+- Use hierarchical context to inform decisions.
+- Prioritize clarity, accuracy, and maintainability in all work.
+
+## Constraints
+- Cannot change working directory; must specify full paths externally.
+- Must tailor CLI commands to macOS environment.
+- Must consider actively running terminals before executing commands.
+- Must respect file auto-formatting; always use final saved state.
+- Operate within stateless, session-based paradigm relying solely on Memory Bank.
+
+## Summary
+Cline’s effectiveness depends entirely on disciplined use of the Memory Bank and adherence to these operational rules. This ensures continuity, precision, and high-quality output across all sessions.
+
+
+Below is a design guide for building an atomic-based React system that is fully tested. This guide leverages the **Atomic Design** methodology by Brad Frost, which organizes UI components into a hierarchy (Atoms, Molecules, Organisms, Templates, Pages) for modularity and reusability. I’ll include best practices for React, TypeScript, and testing to ensure a robust, maintainable system tailored to your routing simulator project. The content is formatted as a `design-guide.md` file.
+
+---
+
+```
+# Design Guide for Atomic-Based React System
+
+This guide outlines the design and implementation of a fully tested, atomic-based React system for a web-based routing simulator. It follows the Atomic Design methodology, ensuring modularity, reusability, and testability.
+
+## Overview
+- **Atomic Design**: Components are categorized into five levels:
+  - **Atoms**: Basic building blocks (e.g., buttons, inputs, labels).
+  - **Molecules**: Combinations of atoms forming functional units (e.g., forms, cards).
+  - **Organisms**: Complex UI sections (e.g., routing table, topology graph).
+  - **Templates**: Layouts combining organisms (e.g., dashboard layout).
+  - **Pages**: Specific instances of templates with real data (e.g., simulator homepage).
+- **Goals**: Modularity, scalability, and comprehensive test coverage for a routing simulator supporting Static, RIP, OSPF, IS-IS, and BGP protocols.
+
+## Tech Stack
+- **React.js**: For component-based UI.
+- **TypeScript**: For type safety and maintainability.
+- **Jest + React Testing Library**: For unit and integration testing.
+- **Storybook**: For component documentation and isolated testing.
+- **ESLint + Prettier**: For code quality and consistency.
+
+## Project Structure
+```
+src/
+├── atoms/              # Atomic components
+│   ├── Button/
+│   │   ├── Button.tsx
+│   │   ├── Button.test.tsx
+│   │   └── Button.stories.tsx
+│   └── Input/
+├── molecules/          # Molecular components
+│   └── RouteForm/
+├── organisms/          # Organism components
+│   ├── RoutingTable/
+│   └── NetworkGraph/
+├── templates/          # Layout templates
+│   └── SimulatorLayout/
+├── pages/              # Page-level components
+│   └── SimulatorPage/
+├── hooks/              # Custom hooks
+│   └── useRoutingSimulator.ts
+├── types/              # TypeScript definitions
+│   └── routing.ts
+├── utils/              # Utility functions
+│   └── ipCalculator.ts
+└── tests/              # Additional integration tests
+```
+
+## Design Principles
+1. **Single Responsibility**: Each component should have one purpose (e.g., `Button` handles clicks, not routing logic).
+2. **Reusability**: Atoms and molecules should be generic and reusable across the app.
+3. **Props-Driven**: Components should rely on props for configuration and data, avoiding internal state where possible.
+4. **Type Safety**: Use TypeScript interfaces for props and state to catch errors early.
+5. **Testability**: Every component must have unit tests; critical flows (e.g., route updates) should have integration tests.
+
+## Component Guidelines
+
+### Atoms
+- **Purpose**: Smallest UI units (e.g., `Button`, `Input`, `Icon`).
+- **Characteristics**:
+  - Purely presentational.
+  - No business logic.
+  - Highly reusable.
+- **Example**:
+```tsx
+// src/atoms/Button/Button.tsx
+interface ButtonProps {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+export const Button: React.FC<ButtonProps> = ({ label, onClick, disabled }) => (
+  <button onClick={onClick} disabled={disabled} className="btn">
+    {label}
+  </button>
+);
+```
+- **Testing**:
+```tsx
+// src/atoms/Button/Button.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from './Button';
+
+describe('Button', () => {
+  it('renders with label', () => {
+    render(<Button label="Click Me" onClick={() => {}} />);
+    expect(screen.getByText('Click Me')).toBeInTheDocument();
+  });
+
+  it('calls onClick when clicked', () => {
+    const handleClick = jest.fn();
+    render(<Button label="Click Me" onClick={handleClick} />);
+    fireEvent.click(screen.getByText('Click Me'));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('is disabled when disabled prop is true', () => {
+    render(<Button label="Click Me" onClick={() => {}} disabled />);
+    expect(screen.getByText('Click Me')).toBeDisabled();
+  });
+});
+```
+
+### Molecules
+- **Purpose**: Combine atoms into functional units (e.g., `RouteForm` for adding routes).
+- **Characteristics**:
+  - Minimal state (prefer hooks).
+  - Pass props to child atoms.
+- **Example**:
+```tsx
+// src/molecules/RouteForm/RouteForm.tsx
+import { Button } from '../../atoms/Button';
+import { Input } from '../../atoms/Input';
+
+interface RouteFormProps {
+  onSubmit: (destination: string, gateway: string) => void;
+}
+
+export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit }) => {
+  const [destination, setDestination] = React.useState('');
+  const [gateway, setGateway] = React.useState('');
+
+  const handleSubmit = () => {
+    onSubmit(destination, gateway);
+    setDestination('');
+    setGateway('');
+  };
+
+  return (
+    <div className="route-form">
+      <Input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Destination" />
+      <Input value={gateway} onChange={(e) => setGateway(e.target.value)} placeholder="Gateway" />
+      <Button label="Add Route" onClick={handleSubmit} />
+    </div>
+  );
+};
+```
+- **Testing**: Test rendering, state changes, and prop callbacks.
+
+### Organisms
+- **Purpose**: Complex UI sections (e.g., `RoutingTable`, `NetworkGraph`).
+- **Characteristics**:
+  - Compose multiple molecules and atoms.
+  - May fetch data via hooks or context.
+- **Example**:
+```tsx
+// src/organisms/RoutingTable/RoutingTable.tsx
+import { RouteForm } from '../../molecules/RouteForm';
+
+interface Route {
+  destination: string;
+  gateway: string;
+}
+
+interface RoutingTableProps {
+  routes: Route[];
+  addRoute: (destination: string, gateway: string) => void;
+}
+
+export const RoutingTable: React.FC<RoutingTableProps> = ({ routes, addRoute }) => (
+  <div className="routing-table">
+    <RouteForm onSubmit={addRoute} />
+    <table>
+      <thead>
+        <tr>
+          <th>Destination</th>
+          <th>Gateway</th>
+        </tr>
+      </thead>
+      <tbody>
+        {routes.map((route, index) => (
+          <tr key={index}>
+            <td>{route.destination}</td>
+            <td>{route.gateway}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+```
+- **Testing**: Test rendering of child components and data propagation.
+
+### Templates
+- **Purpose**: Define layouts (e.g., `SimulatorLayout` with header, sidebar, content).
+- **Characteristics**:
+  - No data, just structure.
+  - Pass children via props or slots.
+- **Example**:
+```tsx
+// src/templates/SimulatorLayout/SimulatorLayout.tsx
+interface SimulatorLayoutProps {
+  header: React.ReactNode;
+  sidebar: React.ReactNode;
+  content: React.ReactNode;
+}
+
+export const SimulatorLayout: React.FC<SimulatorLayoutProps> = ({ header, sidebar, content }) => (
+  <div className="simulator-layout">
+    <header>{header}</header>
+    <aside>{sidebar}</aside>
+    <main>{content}</main>
+  </div>
+);
+```
+
+### Pages
+- **Purpose**: Assemble templates with real data (e.g., `SimulatorPage`).
+- **Characteristics**:
+  - Connect to state management or API.
+- **Example**:
+```tsx
+// src/pages/SimulatorPage/SimulatorPage.tsx
+import { SimulatorLayout } from '../../templates/SimulatorLayout';
+import { RoutingTable } from '../../organisms/RoutingTable';
+import { useRoutingSimulator } from '../../hooks/useRoutingSimulator';
+
+export const SimulatorPage: React.FC = () => {
+  const { routes, addRoute } = useRoutingSimulator();
+
+  return (
+    <SimulatorLayout
+      header={<h1>Routing Simulator</h1>}
+      sidebar={<nav>Protocol Selector</nav>}
+      content={<RoutingTable routes={routes} addRoute={addRoute} />}
+    />
+  );
+};
+```
+
+## State Management
+- **Custom Hooks**: Use hooks like `useRoutingSimulator` for simulator logic (e.g., managing routes, simulating protocols).
+- **Context (Optional)**: For global state (e.g., active protocol, network topology).
+- **Avoid Redux**: Unless the simulator scales to multi-user or complex state, hooks suffice.
+
+## Testing Strategy
+1. **Unit Tests**:
+   - Test each atom, molecule, and organism in isolation.
+   - Mock props and callbacks.
+2. **Integration Tests**:
+   - Test organisms with real child components.
+   - Test templates with sample content.
+3. **Snapshot Tests**:
+   - Use Jest snapshots for UI consistency.
+4. **End-to-End Tests (Optional)**:
+   - Use Cypress or Playwright for critical user flows (e.g., adding a route, visualizing topology).
+5. **Coverage**: Aim for 90%+ coverage of components and hooks.
+
+## Best Practices
+- **Naming**: Use descriptive names (e.g., `RouteForm` not `Form`).
+- **Props**: Define interfaces for all props.
+- **Accessibility**: Add ARIA labels and keyboard navigation.
+- **Performance**: Memoize components (`React.memo`) and callbacks (`useCallback`) where needed.
+- **Documentation**: Use Storybook to document components and their states.
+
+## Example Hook
+```tsx
+// src/hooks/useRoutingSimulator.ts
+import { useState } from 'react';
+
+interface Route {
+  destination: string;
+  gateway: string;
+}
+
+export const useRoutingSimulator = () => {
+  const [routes, setRoutes] = useState<Route[]>([]);
+
+  const addRoute = (destination: string, gateway: string) => {
+    setRoutes((prev) => [...prev, { destination, gateway }]);
+  };
+
+  return { routes, addRoute };
+};
+```
+
+## Conclusion
+This atomic-based React system ensures a modular, testable, and scalable simulator. By adhering to these guidelines, you can efficiently implement and test routing protocol behaviors while maintaining a clean codebase.
+```
+
+---
+
+This design guide provides a structured approach to building your routing simulator with React, TypeScript, and Atomic Design. It emphasizes modularity, type safety, and comprehensive testing, aligning with your goal of a web-based, RFC-compliant tool. Let me know if you’d like to expand on any section (e.g., specific protocol implementations or testing examples)!
