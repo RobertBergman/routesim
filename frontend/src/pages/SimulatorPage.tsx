@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Box, CssBaseline, AppBar, Toolbar, Typography, Drawer, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import React, { useState, useRef } from 'react'; // Added useRef
+import { Box, CssBaseline, AppBar, Toolbar, Typography, Drawer, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton } from '@mui/material'; // Added IconButton
+import { UploadFile as UploadFileIcon, Download as DownloadIcon } from '@mui/icons-material'; // Added Icons
 import DevicePanel from '../components/DevicePanel';
 import LinkPanel from '../components/LinkPanel';
 import InterfacePanel from '../components/InterfacePanel';
@@ -23,13 +24,39 @@ interface SimulatorPageProps {
   addDevice: (deviceName: string) => Promise<void>;
   // Update addLink prop to expect the AddLinkData type (using names)
   addLink: (linkData: AddLinkData) => Promise<void>;
-  // Add the new addInterface prop
   addInterface: (deviceId: string, interfaceName: string) => Promise<void>;
+  // Add Import/Export handlers
+  handleExportTopology: () => void;
+  handleImportTopology: (file: File) => void;
   // Add other props as needed (e.g., removeDevice)
 }
 
-const SimulatorPage: React.FC<SimulatorPageProps> = ({ devices, links, addDevice, addLink, addInterface }) => {
+const SimulatorPage: React.FC<SimulatorPageProps> = ({
+  devices,
+  links,
+  addDevice,
+  addLink,
+  addInterface,
+  handleExportTopology,
+  handleImportTopology
+}) => {
   const [helpOpen, setHelpOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for hidden file input
+
+  const handleImportClick = () => {
+    // Trigger click on the hidden file input
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleImportTopology(file);
+      // Reset the input value so the same file can be selected again if needed
+      event.target.value = '';
+    }
+  };
+
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
@@ -39,6 +66,23 @@ const SimulatorPage: React.FC<SimulatorPageProps> = ({ devices, links, addDevice
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Routing Simulator
           </Typography>
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".json" // Accept only JSON files
+            style={{ display: 'none' }}
+          />
+          {/* Import Button */}
+          <IconButton color="inherit" onClick={handleImportClick} title="Import Topology (JSON)">
+            <UploadFileIcon />
+          </IconButton>
+          {/* Export Button */}
+          <IconButton color="inherit" onClick={handleExportTopology} title="Export Topology (JSON)">
+            <DownloadIcon />
+          </IconButton>
+          {/* Help Button */}
           <Button color="inherit" onClick={() => setHelpOpen(true)}>
             Help
           </Button>

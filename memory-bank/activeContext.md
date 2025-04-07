@@ -25,6 +25,13 @@
   - `InterfacePanel` allows adding interfaces to a selected device.
   - `LinkPanel` uses Material UI `Select` dropdowns to create links between available interfaces on selected devices.
   - `TopologyGraph` renders a basic **SVG visualization** (circular layout) based on props. (Note: Currently not using Cytoscape.js). Layout fix implemented (removed absolute positioning).
+- **Implemented Topology Import/Export:**
+  - Added functionality in `App.tsx` to export the current topology (devices and links) to a JSON file matching the specified format.
+  - Added functionality in `App.tsx` to import a topology from a JSON file, parsing it and updating the frontend state.
+  - Added Import (Upload) and Export (Download) buttons with icons (`@mui/icons-material` dependency added) to the `AppBar` in `SimulatorPage.tsx`.
+- **Implemented Local Storage Persistence:**
+  - `App.tsx` now loads the topology state (devices and links) from browser `localStorage` on initial load.
+  - `App.tsx` saves the current topology state to `localStorage` whenever devices or links change.
 
 ## Next Steps
 - **Implement WebSocket connection** and message handling in `App.tsx` and backend for real-time updates.

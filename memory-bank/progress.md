@@ -17,6 +17,8 @@
     - UI components (`DevicePanel`, `InterfacePanel`, `LinkPanel`) for adding topology elements. `LinkPanel` uses dropdowns.
     - Basic SVG visualization of topology (`TopologyGraph`).
     - API integration for fetching and adding topology elements (optimistic updates).
+    - **Topology Import/Export:** UI buttons and logic in `App.tsx` to import/export topology via JSON files.
+    - **Local Storage Persistence:** Topology state is loaded from and saved to browser local storage.
 
 ## What's Left to Build
 - **Core:**
@@ -43,7 +45,7 @@
 - Core simulation models and routing engine framework are in place.
 - OSPF, IS-IS, BGP engines are implemented with simplified logic. Static is basic, RIP is a stub.
 - Backend provides foundational API for topology management.
-- Frontend allows adding devices, interfaces, links, and visualizes the topology via SVG.
+- Frontend allows adding devices, interfaces, links, visualizes the topology via SVG, and supports import/export + local storage persistence.
 - **Major gap: Test coverage for core routing logic.**
 - Ready for WebSocket implementation, RIP completion, testing improvements, and UI enhancements.
 
