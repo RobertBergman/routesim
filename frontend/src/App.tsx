@@ -60,9 +60,29 @@ function App() {
 
   // Load topology from Local Storage on initial mount
   useEffect(() => {
-    console.log("Starting with empty topology. User must load, import, or create a topology.");
-    setDevices([]);
-    setLinks([]);
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        console.log("Loading saved topology from Local Storage...");
+        const parsed = JSON.parse(saved);
+        if (parsed.devices && parsed.links) {
+          setDevices(parsed.devices);
+          setLinks(parsed.links);
+        } else {
+          console.warn("Saved topology missing devices or links, starting empty.");
+          setDevices([]);
+          setLinks([]);
+        }
+      } else {
+        console.log("No saved topology found, starting empty.");
+        setDevices([]);
+        setLinks([]);
+      }
+    } catch (err) {
+      console.error("Error loading topology from Local Storage:", err);
+      setDevices([]);
+      setLinks([]);
+    }
     setLoading(false);
     isInitialLoad.current = false;
   }, []); // Empty dependency array: Runs only once on mount

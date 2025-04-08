@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Box, CssBaseline, AppBar, Toolbar, Typography, Drawer, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent } from '@mui/material';
+import { Box, CssBaseline, AppBar, Toolbar, Typography, Drawer, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent, Tabs, Tab } from '@mui/material';
 import { UploadFile as UploadFileIcon, Download as DownloadIcon } from '@mui/icons-material';
 import DevicePanel from '../components/DevicePanel';
 import LinkPanel from '../components/LinkPanel';
@@ -44,6 +44,7 @@ const SimulatorPage: React.FC<SimulatorPageProps> = ({
 }) => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [currentLayout, setCurrentLayout] = useState<'circle' | 'star' | 'grid' | 'tree'>('circle');
+  const [sidebarTab, setSidebarTab] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
@@ -124,13 +125,29 @@ const SimulatorPage: React.FC<SimulatorPageProps> = ({
         }}
       >
         <Toolbar />
-        <Box sx={{ overflowY: 'auto', p: 2 }}>
-          {/* Pass devices and addDevice to DevicePanel */}
-          <DevicePanel devices={devices} addDevice={addDevice} />
-          {/* Pass devices and addInterface to InterfacePanel */}
-          <InterfacePanel devices={devices} addInterface={addInterface} />
-          {/* Pass devices, links, and addLink to LinkPanel */}
-          <LinkPanel devices={devices} links={links} addLink={addLink} />
+        <Box sx={{ overflowY: 'auto', p: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={sidebarTab}
+              onChange={(e, newValue) => setSidebarTab(newValue)}
+              variant="fullWidth"
+            >
+              <Tab label="Devices" />
+              <Tab label="Interfaces" />
+              <Tab label="Links" />
+            </Tabs>
+          </Box>
+          <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
+            {sidebarTab === 0 && (
+              <DevicePanel devices={devices} links={links} addDevice={addDevice} />
+            )}
+            {sidebarTab === 1 && (
+              <InterfacePanel devices={devices} addInterface={addInterface} />
+            )}
+            {sidebarTab === 2 && (
+              <LinkPanel devices={devices} links={links} addLink={addLink} />
+            )}
+          </Box>
         </Box>
       </Drawer>
       <Box
