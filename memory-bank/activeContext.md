@@ -4,7 +4,8 @@
 - Core topology models (`Device`, `NetworkInterface`, `Link`, `TopologyManager`) implemented.
 - Backend server scaffolded with REST API and WebSocket support.
 - Frontend React app integrated with backend for device management.
-- Frontend **supports adding devices and links** via forms, with Cytoscape.js visualization updating dynamically.
+- Frontend **supports adding, removing devices and links** via forms, with SVG-based topology visualization.
+- Frontend now supports **preset topologies** (star, ring, mesh, tree) via dropdown selection.
 - Maintain and update Memory Bank to reflect evolving specifications.
 - **Enhance UI and expand API for protocol configuration and visualization.**
 
@@ -24,7 +25,13 @@
   - `DevicePanel` allows adding devices (by name) and lists devices/interfaces. Placeholders for routing table/status.
   - `InterfacePanel` allows adding interfaces to a selected device.
   - `LinkPanel` uses Material UI `Select` dropdowns to create links between available interfaces on selected devices.
-  - `TopologyGraph` renders a basic **SVG visualization** (circular layout) based on props. (Note: Currently not using Cytoscape.js). Layout fix implemented (removed absolute positioning).
+  - `TopologyGraph` enhanced with **interactive SVG visualization** supporting:
+    - Multiple layout arrangements (circle, star, grid, tree) selectable via dropdown
+    - Multi-node selection (Ctrl+click or box selection) and group manipulation
+    - Drag-and-drop repositioning of single or multiple nodes
+    - Canvas panning (Alt+drag or middle-mouse) and zoom controls
+    - Zoom slider with mousewheel support (Ctrl+wheel to zoom, wheel to pan)
+    - Node selection and bulk deletion (right-click)
 - **Implemented Topology Import/Export:**
   - Added functionality in `App.tsx` to export the current topology (devices and links) to a JSON file matching the specified format.
   - Added functionality in `App.tsx` to import a topology from a JSON file, parsing it and updating the frontend state.
@@ -32,13 +39,20 @@
 - **Implemented Local Storage Persistence:**
   - `App.tsx` now loads the topology state (devices and links) from browser `localStorage` on initial load.
   - `App.tsx` saves the current topology state to `localStorage` whenever devices or links change.
+- **Fixed frontend WebSocket connection:** Implemented a robust WebSocket connection system in `App.tsx` with:
+  - Automatic reconnection mechanism for handling connection failures
+  - Better error handling that doesn't block the UI
+  - Data validation to prevent errors with malformed messages
+  - Proper connection state tracking
+  - Graceful cleanup on component unmount
 
 ## Next Steps
 - **Implement WebSocket connection** and message handling in `App.tsx` and backend for real-time updates.
 - **Complete RIP implementation** in `core/src/routing/RipRoutingEngine.ts`.
 - **Significantly improve test coverage** for core routing engines (OSPF, IS-IS, BGP) in `core/src/routing/__tests__/`, addressing packet types, assertions, mocks, and private access. Add tests for Static engine methods.
-- **Implement delete functionality** (device, link, interface, protocol) in backend API and frontend actions/UI.
-- **Enhance frontend UI:** Display routing tables/protocol status in `DevicePanel`, potentially switch `TopologyGraph` to Cytoscape.js for better interactivity.
+- **Implement delete functionality** for interface and protocol in backend API and frontend actions/UI.
+- **Improve frontend performance:** Optimize rendering and event handling.
+- **Enhance frontend UI:** Display routing tables/protocol status in `DevicePanel`.
 - **Expand backend API** for detailed protocol configuration (e.g., setting OSPF areas, BGP AS numbers).
 - **Implement TODOs** in `core/src/simulation/TopologyModels.ts` (`sendPacket`, `getLocalPrefixes`, `updateRoutingTable`).
 - Continuously update Memory Bank documentation.

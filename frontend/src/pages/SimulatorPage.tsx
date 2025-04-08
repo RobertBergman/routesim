@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react'; // Added useRef
-import { Box, CssBaseline, AppBar, Toolbar, Typography, Drawer, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton } from '@mui/material'; // Added IconButton
-import { UploadFile as UploadFileIcon, Download as DownloadIcon } from '@mui/icons-material'; // Added Icons
+import React, { useState, useRef } from 'react';
+import { Box, CssBaseline, AppBar, Toolbar, Typography, Drawer, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent } from '@mui/material';
+import { UploadFile as UploadFileIcon, Download as DownloadIcon } from '@mui/icons-material';
 import DevicePanel from '../components/DevicePanel';
 import LinkPanel from '../components/LinkPanel';
 import InterfacePanel from '../components/InterfacePanel';
@@ -22,14 +22,14 @@ interface SimulatorPageProps {
   devices: Device[];
   links: Link[];
   addDevice: (deviceName: string) => Promise<void>;
-  // Update addLink prop to expect the AddLinkData type (using names)
   addLink: (linkData: AddLinkData) => Promise<void>;
   addInterface: (deviceId: string, interfaceName: string) => Promise<void>;
-  // Add Import/Export handlers
   handleExportTopology: () => void;
   handleImportTopology: (file: File) => void;
-  // Add other props as needed (e.g., removeDevice)
+  removeDevice: (deviceId: string) => void;
+  updateNodePositions: (positions: Record<string, { x: number, y: number }>) => void;
 }
+
 
 const SimulatorPage: React.FC<SimulatorPageProps> = ({
   devices,
@@ -38,13 +38,15 @@ const SimulatorPage: React.FC<SimulatorPageProps> = ({
   addLink,
   addInterface,
   handleExportTopology,
-  handleImportTopology
+  handleImportTopology,
+  removeDevice,
+  updateNodePositions
 }) => {
   const [helpOpen, setHelpOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for hidden file input
+  const [currentLayout, setCurrentLayout] = useState<'circle' | 'star' | 'grid' | 'tree'>('circle');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
-    // Trigger click on the hidden file input
     fileInputRef.current?.click();
   };
 
@@ -52,9 +54,15 @@ const SimulatorPage: React.FC<SimulatorPageProps> = ({
     const file = event.target.files?.[0];
     if (file) {
       handleImportTopology(file);
-      // Reset the input value so the same file can be selected again if needed
       event.target.value = '';
     }
+  };
+
+  const handleLayoutChange = (event: SelectChangeEvent) => {
+    const layoutName = event.target.value as 'circle' | 'star' | 'grid' | 'tree';
+    if (!layoutName) return;
+    
+    setCurrentLayout(layoutName);
   };
 
 
@@ -82,6 +90,25 @@ const SimulatorPage: React.FC<SimulatorPageProps> = ({
           <IconButton color="inherit" onClick={handleExportTopology} title="Export Topology (JSON)">
             <DownloadIcon />
           </IconButton>
+          
+          {/* Layout Selector */}
+          <FormControl sx={{ minWidth: 150, mx: 1 }}>
+            <InputLabel id="layout-label" sx={{ color: 'white' }}>Layout</InputLabel>
+            <Select
+              labelId="layout-label"
+              id="layout-select"
+              value={currentLayout}
+              label="Layout"
+              onChange={handleLayoutChange}
+              sx={{ color: 'white', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'white' } }}
+            >
+              <MenuItem value="circle">Circle</MenuItem>
+              <MenuItem value="star">Star</MenuItem>
+              <MenuItem value="grid">Grid</MenuItem>
+              <MenuItem value="tree">Tree</MenuItem>
+            </Select>
+          </FormControl>
+          
           {/* Help Button */}
           <Button color="inherit" onClick={() => setHelpOpen(true)}>
             Help
@@ -127,7 +154,13 @@ const SimulatorPage: React.FC<SimulatorPageProps> = ({
           overflow: 'hidden'
         }}>
           {/* Pass devices and links to TopologyGraph */}
-          <TopologyGraph devices={devices} links={links} />
+          <TopologyGraph 
+            devices={devices} 
+            links={links} 
+            onDeleteNode={removeDevice} 
+            layout={currentLayout}
+            onPositionsChange={updateNodePositions}
+          />
         </div>
       </Box>
 

@@ -12,6 +12,7 @@ export interface Device {
   id: string;
   name: string;
   interfaces: DeviceInterface[]; // Use the defined interface type
+  position?: { x: number, y: number }; // Optional position for topology display
 }
 
 export interface Link {
@@ -55,41 +56,15 @@ function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const isInitialLoad = useRef(true); // Ref to track initial load vs subsequent updates
+  const wsRef = useRef<WebSocket | null>(null); // Ref to hold the WebSocket instance
 
   // Load topology from Local Storage on initial mount
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    try {
-      const savedTopology = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedTopology) {
-        console.log("Loading topology from Local Storage...");
-        const parsedTopology: { devices: Device[], links: Link[] } = JSON.parse(savedTopology);
-        // Basic validation
-        if (Array.isArray(parsedTopology.devices) && Array.isArray(parsedTopology.links)) {
-          setDevices(parsedTopology.devices);
-          setLinks(parsedTopology.links);
-        } else {
-          console.warn("Invalid topology format found in Local Storage. Clearing.");
-          localStorage.removeItem(LOCAL_STORAGE_KEY);
-          // Optionally fetch from API as fallback or start fresh
-          // fetchData(); // Uncomment to fetch from API if local storage fails
-        }
-      } else {
-        console.log("No topology found in Local Storage. Starting fresh or fetching from API.");
-        // Optionally fetch initial data from API if local storage is empty
-        // fetchData(); // Uncomment to fetch from API if local storage is empty
-      }
-    } catch (err) {
-      console.error("Error loading topology from Local Storage:", err);
-      setError("Failed to load saved topology. Starting fresh.");
-      localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear corrupted data
-      setDevices([]); // Reset state
-      setLinks([]);   // Reset state
-    } finally {
-      setLoading(false);
-      isInitialLoad.current = false; // Mark initial load as complete
-    }
+    console.log("Starting with empty topology. User must load, import, or create a topology.");
+    setDevices([]);
+    setLinks([]);
+    setLoading(false);
+    isInitialLoad.current = false;
   }, []); // Empty dependency array: Runs only once on mount
 
   // Save topology to Local Storage whenever devices or links change (after initial load)
@@ -108,40 +83,148 @@ function App() {
     }
   }, [devices, links, loading]); // Dependency array: Runs when devices, links, or loading state change
 
-  // TODO: useEffect for WebSocket connection setup and message handling
+  // WebSocket connection setup with reconnection mechanism
+  const [wsConnected, setWsConnected] = useState(false);
+  const reconnectTimeoutRef = useRef<number | null>(null);
+  
   useEffect(() => {
-    // Placeholder for WebSocket logic
-    console.log("WebSocket connection would be established here.");
-    // const ws = new WebSocket('ws://localhost:3001'); // Assuming WS server on same port
-
-    // ws.onmessage = (event) => {
-    //   const message = JSON.parse(event.data);
-    //   console.log('WebSocket message received:', message);
-    //   switch (message.type) {
-    //     case 'topology_update':
-    //       // Refetch or update state based on message payload
-    //       // Example: setDevices(message.payload.devices); setLinks(message.payload.links);
-    //       break;
-    //     case 'device_added':
-    //       // setDevices(prev => [...prev, message.payload]);
-    //       break;
-    //     // Add cases for device_removed, link_added, link_removed, interface_added, etc.
-    //   }
-    // };
-
-    // ws.onerror = (error) => {
-    //   console.error('WebSocket error:', error);
-    //   setError('WebSocket connection error');
-    // };
-
-    // ws.onclose = () => {
-    //   console.log('WebSocket connection closed');
-    // };
-
-    // return () => {
-    //   ws.close(); // Cleanup WebSocket connection on component unmount
-    // };
-  }, []); // Runs once on mount
+    const connectWebSocket = () => {
+      const socketUrl = window.location.hostname === 'localhost' 
+        ? 'ws://localhost:3001' 
+        : `ws://${window.location.hostname}:3001`;
+      
+      console.log("Attempting WebSocket connection to:", socketUrl);
+      
+      // Prevent multiple connections
+      if (wsRef.current && wsRef.current.readyState < WebSocket.CLOSING) {
+        console.log("WebSocket connection already exists or is connecting.");
+        return;
+      }
+      
+      try {
+        wsRef.current = new WebSocket(socketUrl);
+        const ws = wsRef.current; // Use local variable for easier access in handlers
+        
+        // Connection established
+        ws.onopen = () => {
+          console.log('WebSocket connection established');
+          setWsConnected(true);
+          setError(null);
+          
+          // Request current topology state
+          ws.send(JSON.stringify({ type: 'request_topology' }));
+          
+          // Clear any reconnection timeouts
+          if (reconnectTimeoutRef.current) {
+            window.clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = null;
+          }
+        };
+        
+        // Message received
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            console.log('WebSocket message received:', message.type);
+            
+            switch (message.type) {
+              case 'initial_topology':
+              case 'topology_update': {
+                if (!message.data || !message.data.devices || !message.data.links) {
+                  console.warn('Received invalid topology data:', message.data);
+                  return;
+                }
+                
+                // Process devices from topology data
+                const topologyDevices = message.data.devices.map((d: any) => {
+                  // Find existing device to preserve position if it exists
+                  const existingDevice = devices.find(ed => ed.id === d.id);
+                  
+                  // Convert interfaces array of names to array of interface objects
+                  const interfaces: DeviceInterface[] = d.interfaces.map((interfaceName: string) => ({
+                    name: interfaceName,
+                    ipAddresses: [] // We'll need to fetch interface details separately if needed
+                  }));
+                  
+                  return {
+                    id: d.id,
+                    name: d.name,
+                    interfaces,
+                    position: existingDevice?.position // Preserve position if device already exists
+                  };
+                });
+                
+                // Process links
+                const topologyLinks = message.data.links.map((link: any) => {
+                  return {
+                    id: `${link.interfaceA.deviceId}:${link.interfaceA.name}-${link.interfaceB.deviceId}:${link.interfaceB.name}`,
+                    sourceDeviceId: link.interfaceA.deviceId,
+                    sourceInterfaceName: link.interfaceA.name,
+                    targetDeviceId: link.interfaceB.deviceId,
+                    targetInterfaceName: link.interfaceB.name
+                  };
+                });
+                
+                // Update state with the received topology
+                setDevices(topologyDevices);
+                setLinks(topologyLinks);
+                break;
+              }
+              // Add cases for other message types if needed
+            }
+          } catch (error) {
+            console.error('Error processing WebSocket message:', error);
+          }
+        };
+        
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          // Don't set error state immediately to avoid blocking UI
+          // setError('WebSocket connection error');
+        };
+        
+        ws.onclose = (event) => {
+          console.log(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`);
+          setWsConnected(false);
+          
+          // Attempt to reconnect after a delay, unless the component is unmounting
+          if (!event.wasClean) {
+            console.log('Scheduling reconnection attempt...');
+            reconnectTimeoutRef.current = window.setTimeout(() => {
+              console.log('Attempting to reconnect WebSocket...');
+              connectWebSocket();
+            }, 2000); // 2 second delay
+          }
+        };
+      } catch (err) {
+        console.error('Error creating WebSocket:', err);
+        setWsConnected(false);
+      }
+    };
+    
+    // Initial connection
+    connectWebSocket();
+    
+    // Cleanup function - runs when component unmounts or before re-running effect
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        window.clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      
+      if (wsRef.current) {
+        console.log("Closing WebSocket connection on component cleanup.");
+        // Set a flag to indicate intentional close (to avoid reconnection attempts)
+        const ws = wsRef.current;
+        
+        // Only close if not already closed or closing
+        if (ws.readyState < WebSocket.CLOSING) {
+          ws.close(1000, "Component unmounting");
+        }
+        wsRef.current = null;
+      }
+    };
+  }, []); // Runs once on mount (or twice in Strict Mode dev)
 
   // --- Action Functions (to be passed down) ---
 
@@ -382,7 +465,24 @@ function App() {
     }
   }, [setDevices, setError]); // Added dependencies
 
+  // Update node positions
+  const updateNodePositions = useCallback((newPositions: Record<string, { x: number, y: number }>) => {
+    setDevices(prevDevices => 
+      prevDevices.map(device => ({
+        ...device,
+        position: newPositions[device.id] || device.position
+      }))
+    );
+  }, []);
+
   // TODO: Add functions for removeDevice, removeLink, etc.
+
+  const removeDevice = useCallback((deviceId: string) => {
+    console.log(`Removing device ${deviceId} and its links`);
+    setDevices(prevDevices => prevDevices.filter(d => d.id !== deviceId));
+    setLinks(prevLinks => prevLinks.filter(l => l.sourceDeviceId !== deviceId && l.targetDeviceId !== deviceId));
+    // Optionally, send DELETE requests to backend here
+  }, []);
 
   if (loading) {
     return <div>Loading Topology...</div>;
@@ -398,10 +498,11 @@ function App() {
       links={links}
       addDevice={addDevice}
       addLink={addLink}
-      addInterface={addInterface} // Pass addInterface down (Removed duplicate)
-      handleExportTopology={handleExportTopology} // Pass export handler
-      handleImportTopology={handleImportTopology} // Pass import handler
-      // Pass other state/functions as needed
+      addInterface={addInterface}
+      handleExportTopology={handleExportTopology}
+      handleImportTopology={handleImportTopology}
+      removeDevice={removeDevice}
+      updateNodePositions={updateNodePositions}
     />
   );
 }

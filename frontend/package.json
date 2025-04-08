@@ -16,6 +16,7 @@
     "@mui/material": "^7.0.1",
     "cytoscape": "^3.31.2",
     "react": "^19.0.0",
+    "react-cytoscapejs": "^2.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
